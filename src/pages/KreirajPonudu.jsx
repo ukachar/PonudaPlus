@@ -1,10 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
 import Header from "../components/Header";
 import { formattedDate } from "../../helpers/todaysDate";
 import { databases } from "../../appwriteConfig";
 import { ID, Query } from "appwrite";
+import getSettings from "../../helpers/getSettings";
+import { calculateExpiryDate } from "../../helpers/calculateExpiryDate";
 
 const KreirajPonudu = () => {
   const pdfRef = useRef(null);
@@ -13,7 +15,30 @@ const KreirajPonudu = () => {
     adresa_kupca: "",
     pbr_kupca: "",
     oib_kupca: "",
+    datum_ponude: formattedDate,
+    vrijedi_do: calculateExpiryDate(0),
+    broj_ponude: 0,
   });
+
+  const [daysValid, setDaysValid] = useState(0);
+  const [settings, setSettings] = useState({});
+  const [broj_ponude, setBrojPonude] = useState(0);
+
+  useEffect(() => {
+    const fetchBrojPonude = async () => {
+      const broj = await getNextPonudaNumber();
+      setBrojPonude(broj);
+      setFormData((prev) => ({ ...prev, broj_ponude: broj }));
+    };
+
+    fetchBrojPonude();
+
+    const fetchSettings = async () => {
+      const s = await getSettings();
+      setSettings(s);
+    };
+    fetchSettings();
+  }, []);
 
   const [items, setItems] = useState([]);
 
@@ -104,7 +129,6 @@ const KreirajPonudu = () => {
 
   const savePonuda = async () => {
     try {
-      const broj_ponude = await getNextPonudaNumber();
       const response = await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
@@ -115,6 +139,8 @@ const KreirajPonudu = () => {
           adresa_kupca: formData.adresa_kupca,
           pbr_kupca: formData.pbr_kupca,
           oib_kupca: formData.oib_kupca,
+          datum_ponude: formData.datum_ponude,
+          vrijedi_do: calculateExpiryDate(daysValid),
           stavke: JSON.stringify(items),
           subtotal,
           pdv,
@@ -162,6 +188,14 @@ const KreirajPonudu = () => {
               name="oib_kupca"
               placeholder="OIB kupca"
               className="input input-bordered"
+            />
+
+            <input
+              type="number"
+              value={daysValid}
+              onChange={(e) => setDaysValid(Number(e.target.value))}
+              placeholder="Vrijednost ponude u danima"
+              className="input input-bordered "
             />
           </form>
 
@@ -248,11 +282,11 @@ const KreirajPonudu = () => {
           <div className="flex justify-between items-start">
             <img src="/logo_inverted.png" alt="Logo" className="w-32" />
             <div className="text-right text-sm">
-              <strong>Naziv tvrtke</strong>
-              <p>Adresa</p>
-              <p>Matični broj: 12345678</p>
-              <p>OIB: 12345678901</p>
-              <p>Telefon: 091 123 4567</p>
+              <strong>{settings.naziv_tvrtke}</strong>
+              <p>{settings.adresa}</p>
+              <p>Matični broj: {settings.mbr}</p>
+              <p>OIB: {settings.oib}</p>
+              <p>{settings.phone}</p>
             </div>
           </div>
           <hr className="my-4" />
@@ -261,19 +295,21 @@ const KreirajPonudu = () => {
           <div className="flex justify-between text-sm">
             <div>
               <p>
-                <strong>{formData.kupac}</strong>
+                Naziv kupca: <strong>{formData.kupac}</strong>
               </p>
-              <p>{formData.adresa_kupca}</p>
-              <p>{formData.pbr_kupca}</p>
+              <p>Adresa kupca: {formData.adresa_kupca}</p>
+              <p>Poštanski broj:{formData.pbr_kupca}</p>
               <p>OIB: {formData.oib_kupca}</p>
             </div>
             <div className="text-right">
               <p>Datum ponude: {formattedDate}</p>
-              <p>Vrijedi do: 15.02.2025.</p>
+              <p>Vrijedi do: {calculateExpiryDate(daysValid)}</p>
             </div>
           </div>
 
-          <h4 className="text-lg font-bold text-center my-4">Ponuda # 4</h4>
+          <h4 className="text-lg font-bold text-center my-4">
+            Ponuda #{broj_ponude}
+          </h4>
           <hr className="my-4" />
 
           {/* Items Table */}
