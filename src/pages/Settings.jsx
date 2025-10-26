@@ -4,7 +4,39 @@ import { databases, storage } from "../../appwriteConfig";
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE;
 const DOCUMENT_ID = import.meta.env.VITE_APPWRITE_SETTINGS_DOC_ID;
-const BUCKET_ID = import.meta.env.VITE_APPWRITE_SETTINGS_BUCKET_ID; // bucket za logo
+const BUCKET_ID = import.meta.env.VITE_APPWRITE_SETTINGS_BUCKET_ID;
+
+const themes = [
+  "light",
+  "dark",
+  "cupcake",
+  "bumblebee",
+  "emerald",
+  "corporate",
+  "synthwave",
+  "retro",
+  "cyberpunk",
+  "valentine",
+  "halloween",
+  "garden",
+  "forest",
+  "aqua",
+  "lofi",
+  "pastel",
+  "fantasy",
+  "wireframe",
+  "black",
+  "luxury",
+  "dracula",
+  "cmyk",
+  "autumn",
+  "business",
+  "acid",
+  "lemonade",
+  "night",
+  "coffee",
+  "winter",
+];
 
 const Settings = () => {
   const [settingsData, setSettingsData] = useState({});
@@ -13,7 +45,7 @@ const Settings = () => {
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
 
-  // Dohvati postavke
+  // 🔹 Dohvati postavke i primijeni temu
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -24,7 +56,12 @@ const Settings = () => {
         );
         setSettingsData(response);
 
-        // Ako postoji logoId, generiraj preview preko direktnog URL-a
+        // Postavi temu iz baze
+        if (response.tema) {
+          document.documentElement.setAttribute("data-theme", response.tema);
+        }
+
+        // Ako postoji logoId, prikazi logo
         if (response.logoId && response.logoBucketId) {
           const logoUrl = storage.getFileView(
             response.logoBucketId,
@@ -46,10 +83,13 @@ const Settings = () => {
   if (error) return <p>Error fetching data: {error.message}</p>;
 
   const handleChange = (e) => {
-    setSettingsData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    const value = e.target.value;
+    setSettingsData((prev) => ({ ...prev, [e.target.name]: value }));
+
+    if (e.target.name === "tema") {
+      document.documentElement.setAttribute("data-theme", value);
+      localStorage.setItem("tema", value); // spremi da ostane i nakon refresha
+    }
   };
 
   const handleLogoChange = (e) => {
@@ -69,7 +109,6 @@ const Settings = () => {
         "unique()",
         logoFile
       );
-      console.log("Upload response:", response);
       return response;
     } catch (error) {
       console.error("Error uploading logo:", error);
@@ -96,16 +135,11 @@ const Settings = () => {
         DOCUMENT_ID,
         updatedData
       );
-      console.log("Updated settings:", response);
       setSettingsData(response);
 
-      // Ako je logo spremljen, postavi preview na direktni Appwrite URL
-      if (response.logoId && response.logoBucketId) {
-        const logoUrl = storage.getFileView(
-          response.logoBucketId,
-          response.logoId
-        );
-        setLogoPreview(logoUrl);
+      // Postavi temu odmah nakon spremanja
+      if (response.tema) {
+        document.documentElement.setAttribute("data-theme", response.tema);
       }
 
       alert("Postavke su spremljene.");
@@ -121,42 +155,58 @@ const Settings = () => {
         <h2 className="text-2xl mb-2">Postavke</h2>
         <p className="mb-4">Promijenite postavke aplikacije</p>
 
-        <form className="pt-4">
+        <form className="pt-4 space-y-4">
+          {/* Tekstualna polja */}
           {["naziv_tvrtke", "adresa", "pbr", "oib"].map((field) => (
-            <div key={field} className="grid grid-cols-12 gap-2 py-2">
-              <label className="input input-bordered flex items-center gap-2 col-span-12">
-                <span className="font-bold">
-                  {field.replace("_", " ").toUpperCase()}
-                </span>
-                <input
-                  type="text"
-                  name={field}
-                  className="grow"
-                  value={settingsData[field] || ""}
-                  onChange={handleChange}
-                />
-              </label>
-            </div>
+            <label
+              key={field}
+              className="input input-bordered flex items-center gap-2 w-full"
+            >
+              <span className="font-bold w-40">
+                {field.replace("_", " ").toUpperCase()}
+              </span>
+              <input
+                type="text"
+                name={field}
+                className="grow"
+                value={settingsData[field] || ""}
+                onChange={handleChange}
+              />
+            </label>
           ))}
 
-          <div className="grid grid-cols-12 gap-2 py-2">
-            <label className="flex flex-col col-span-12 gap-2">
-              <span className="font-bold">LOGO</span>
-              <div>
-                Promjeni logo: &nbsp;
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="file-input file-input-bordered w-full max-w-xs"
-                  onChange={handleLogoChange}
-                />
-              </div>
-            </label>
+          {/* Tema */}
+          <div className="form-control">
+            <label className="label font-bold">Odaberite temu</label>
+            <select
+              name="tema"
+              className="select select-bordered w-full"
+              value={settingsData.tema || ""}
+              onChange={handleChange}
+            >
+              <option value="">Odaberi temu</option>
+              {themes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Logo */}
+          <div className="form-control">
+            <label className="label font-bold">Logo</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="file-input file-input-bordered w-full"
+              onChange={handleLogoChange}
+            />
           </div>
 
           {logoPreview && (
             <img
-              className="mx-auto mt-4"
+              className="mx-auto mt-4 rounded-lg shadow"
               width={200}
               src={logoPreview}
               alt="Logo"
@@ -165,7 +215,7 @@ const Settings = () => {
         </form>
 
         <div className="flex justify-center p-4">
-          <button className="btn btn-lg" onClick={updateSettings}>
+          <button className="btn btn-lg btn-primary" onClick={updateSettings}>
             Spremi
           </button>
         </div>

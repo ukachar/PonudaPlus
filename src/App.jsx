@@ -9,6 +9,7 @@ import Prijem from "./pages/Prijem";
 import KreirajPonudu from "./pages/KreirajPonudu";
 import UrediPonudu from "./pages/UrediPonudu";
 import Header from "./components/Header";
+import PonudaPDF from "./pages/PonudaPDF";
 
 function App() {
   return (
@@ -70,6 +71,15 @@ function App() {
               <ProtectedRoute>
                 <Header />
                 <Prijem />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/ponuda-pdf/:id"
+            element={
+              <ProtectedRoute>
+                <PonudaPDF />
               </ProtectedRoute>
             }
           />
