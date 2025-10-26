@@ -7,6 +7,8 @@ import Settings from "./pages/Settings";
 import Ponude from "./pages/Ponude";
 import Prijem from "./pages/Prijem";
 import KreirajPonudu from "./pages/KreirajPonudu";
+import UrediPonudu from "./pages/UrediPonudu";
+import Header from "./components/Header";
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
+                <Header />
                 <Dashboard />
               </ProtectedRoute>
             }
@@ -28,6 +31,7 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute>
+                <Header />
                 <Settings />
               </ProtectedRoute>
             }
@@ -36,6 +40,7 @@ function App() {
             path="/ponude"
             element={
               <ProtectedRoute>
+                <Header />
                 <Ponude />
               </ProtectedRoute>
             }
@@ -44,7 +49,18 @@ function App() {
             path="/kreiraj-ponudu"
             element={
               <ProtectedRoute>
+                <Header />
                 <KreirajPonudu />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/uredi-ponudu/:id"
+            element={
+              <ProtectedRoute>
+                <Header />
+                <UrediPonudu />
               </ProtectedRoute>
             }
           />
@@ -52,6 +68,7 @@ function App() {
             path="/prijem"
             element={
               <ProtectedRoute>
+                <Header />
                 <Prijem />
               </ProtectedRoute>
             }

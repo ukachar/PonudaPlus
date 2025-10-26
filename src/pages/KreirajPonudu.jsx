@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas-pro";
-import Header from "../components/Header";
+import { databases, storage } from "../../appwriteConfig"; // dodano storage
 import { formattedDate } from "../../helpers/todaysDate";
-import { databases } from "../../appwriteConfig";
-import { ID, Query } from "appwrite";
-import getSettings from "../../helpers/getSettings";
 import { calculateExpiryDate } from "../../helpers/calculateExpiryDate";
+import getUserInfo from "../../helpers/getUserInfo";
+import getSettings from "../../helpers/getSettings";
+import { ID, Query } from "appwrite";
 
 const KreirajPonudu = () => {
   const pdfRef = useRef(null);
@@ -23,24 +23,42 @@ const KreirajPonudu = () => {
   const [daysValid, setDaysValid] = useState(0);
   const [settings, setSettings] = useState({});
   const [broj_ponude, setBrojPonude] = useState(0);
+  const [user, setUser] = useState(null);
+
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        // Ovo je helper koji ti već vraća settings iz baze
+        const s = await getSettings();
+
+        // Ako postoji logo, generiraj URL
+        if (s.logoId && s.logoBucketId) {
+          s.logoUrl = storage.getFileView(s.logoBucketId, s.logoId);
+        }
+
+        setSettings(s);
+      } catch (err) {
+        console.error("Error fetching settings:", err);
+      }
+    };
+
+    const fetchUser = async () => {
+      const u = await getUserInfo();
+      setUser(u);
+    };
+
     const fetchBrojPonude = async () => {
       const broj = await getNextPonudaNumber();
       setBrojPonude(broj);
       setFormData((prev) => ({ ...prev, broj_ponude: broj }));
     };
 
-    fetchBrojPonude();
-
-    const fetchSettings = async () => {
-      const s = await getSettings();
-      setSettings(s);
-    };
     fetchSettings();
+    fetchUser();
+    fetchBrojPonude();
   }, []);
-
-  const [items, setItems] = useState([]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -67,10 +85,11 @@ const KreirajPonudu = () => {
       const discountedPrice = item.price * (1 - item.discount / 100);
       return acc + item.quantity * discountedPrice;
     }, 0);
-
     const pdv = subtotal * 0.25;
     return { subtotal, pdv, total: subtotal + pdv };
   };
+
+  const { subtotal, pdv, total } = calculateTotal();
 
   const generatePDF = async () => {
     const element = pdfRef.current;
@@ -83,11 +102,7 @@ const KreirajPonudu = () => {
         const pageHeight = 297;
         const margin = 10;
 
-        const canvas = await html2canvas(element, {
-          useCORS: true,
-          scale: 2,
-        });
-
+        const canvas = await html2canvas(element, { useCORS: true, scale: 2 });
         const imgData = canvas.toDataURL("image/png");
 
         pdf.addImage(
@@ -99,14 +114,13 @@ const KreirajPonudu = () => {
           pageHeight - 2 * margin
         );
         pdf.save("ponuda.pdf");
+
         await savePonuda();
       } catch (error) {
         console.error("Error generating PDF:", error);
       }
     }, 100);
   };
-
-  const { subtotal, pdv, total } = calculateTotal();
 
   const getNextPonudaNumber = async () => {
     try {
@@ -115,11 +129,8 @@ const KreirajPonudu = () => {
         import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
         [Query.orderDesc("broj_ponude"), Query.limit(1)]
       );
-
-      if (response.documents.length > 0) {
-        console.log("Last ponuda:", response.documents[0]);
+      if (response.documents.length > 0)
         return response.documents[0].broj_ponude + 1;
-      }
       return 1;
     } catch (error) {
       console.error("Error fetching last ponuda number:", error);
@@ -134,7 +145,7 @@ const KreirajPonudu = () => {
         import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
         ID.unique(),
         {
-          broj_ponude: broj_ponude,
+          broj_ponude,
           kupac: formData.kupac,
           adresa_kupca: formData.adresa_kupca,
           pbr_kupca: formData.pbr_kupca,
@@ -155,7 +166,6 @@ const KreirajPonudu = () => {
 
   return (
     <>
-      <Header />
       <div className="p-6 flex flex-col lg:flex-row gap-12">
         <div className="flex-1 p-4 shadow-md">
           <h2 className="text-xl font-bold mb-4">Unesi podatke</h2>
@@ -280,13 +290,17 @@ const KreirajPonudu = () => {
         >
           {/* Header */}
           <div className="flex justify-between items-start">
-            <img src="/logo_inverted.png" alt="Logo" className="w-32" />
+            <img
+              src={settings.logoUrl || "/logo_inverted.png"}
+              alt="Logo"
+              className="w-32"
+            />
             <div className="text-right text-sm">
               <strong>{settings.naziv_tvrtke}</strong>
               <p>{settings.adresa}</p>
               <p>Matični broj: {settings.mbr}</p>
               <p>OIB: {settings.oib}</p>
-              <p>{settings.phone}</p>
+              <p>MOB: {settings.phone}</p>
             </div>
           </div>
           <hr className="my-4" />
@@ -346,7 +360,7 @@ const KreirajPonudu = () => {
           </div>
 
           <div className="text-sm mt-auto">
-            <p>Ponudu izdao: ____________________</p>
+            <p>Ponudu izdao: {user ? user.name : "Nepoznato"}</p>
             <p>Način plaćanja: transakcijski račun</p>
             <p>JIR i ZKI: [JIR i ZKI]</p>
             <p>Članovi uprave: [Članovi uprave]</p>

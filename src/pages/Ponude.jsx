@@ -1,92 +1,75 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { databases } from "../../appwriteConfig";
+import { Link } from "react-router-dom";
+import { Query } from "appwrite";
 
-const Ponude = () => {
-  let promise = databases.listDocuments(
-    import.meta.env.VITE_APPWRITE_DATABASE,
-    import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
-    []
-  );
+export default function Ponude() {
+  const [ponude, setPonude] = useState([]);
 
-  promise.then(
-    function (response) {
-      console.log(response);
-    },
-    function (error) {
-      console.log(error);
-    }
-  );
+  useEffect(() => {
+    const fetchPonude = async () => {
+      try {
+        const res = await databases.listDocuments(
+          import.meta.env.VITE_APPWRITE_DATABASE,
+          import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
+          [Query.orderDesc("$createdAt")]
+        );
+        setPonude(res.documents);
+      } catch (err) {
+        console.error("Greška pri dohvaćanju ponuda:", err);
+      }
+    };
+    fetchPonude();
+  }, []);
+
   return (
-    <div className="overflow-x-auto w-10/12 mx-auto">
-      <table className="table ">
-        {/* head */}
-        <thead>
-          <tr>
-            <th>Broj ponude</th>
-            <th>Kupac</th>
-            <th>Iznos</th>
-
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* row 1 */}
-          <tr className="hover">
-            <th>1</th>
-            <td>
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="font-bold">Hart Hagerty</div>
-                  <div className="text-sm opacity-50">United States</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              Zemlak, Daniel and Leannon
-              <br />
-              <span className="badge badge-ghost badge-sm">
-                Desktop Support Technician
-              </span>
-            </td>
-
-            <th>
-              <button className="btn btn-ghost btn-xs">details</button>
-            </th>
-          </tr>
-          {/* row 2 */}
-          <tr className="hover">
-            <th>1</th>
-            <td>
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="font-bold">Brice Swyre</div>
-                  <div className="text-sm opacity-50">China</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              Carroll Group
-              <br />
-              <span className="badge badge-ghost badge-sm">Tax Accountant</span>
-            </td>
-
-            <th>
-              <button className="btn btn-ghost btn-xs">details</button>
-            </th>
-          </tr>
-        </tbody>
-        {/* foot */}
-        <tfoot>
-          <tr>
-            <th>Name</th>
-            <th>Job</th>
-            <th>Favorite Color</th>
-            <th></th>
-          </tr>
-        </tfoot>
-      </table>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">Sve ponude</h1>
+      <div className="overflow-x-auto">
+        <table className="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th className="text-left"># Ponude</th>
+              <th className="text-left">Kupac</th>
+              <th className="text-left">Adresa</th>
+              <th className="text-left">Iznos (€)</th>
+              <th className="text-left">Datum</th>
+              <th className="text-center">Akcije</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ponude.length > 0 ? (
+              ponude.map((p) => (
+                <tr key={p.$id}>
+                  <td className="font-medium">{p.broj_ponude}</td>
+                  <td className="truncate max-w-xs" title={p.kupac}>
+                    {p.kupac}
+                  </td>
+                  <td className="truncate max-w-xs" title={p.adresa_kupca}>
+                    {p.adresa_kupca || "-"}
+                  </td>
+                  <td>{p.total ? p.total.toFixed(2) : "0.00"}</td>
+                  <td>{new Date(p.$createdAt).toLocaleDateString()}</td>
+                  <td className="text-center space-x-2">
+                    <Link
+                      to={`/uredi-ponudu/${p.$id}`}
+                      className="btn btn-sm btn-primary"
+                    >
+                      Uredi
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="text-center py-4 text-gray-500">
+                  Nema ponuda.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
-};
-
-export default Ponude;
+}
