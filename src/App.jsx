@@ -10,6 +10,7 @@ import KreirajPonudu from "./pages/KreirajPonudu";
 import UrediPonudu from "./pages/UrediPonudu";
 import Header from "./components/Header";
 import PonudaPDF from "./pages/PonudaPDF";
+import PrijemPDF from "./pages/PrijemPDF";
 
 function App() {
   return (
@@ -80,6 +81,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <PonudaPDF />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/prijem-pdf/:id"
+            element={
+              <ProtectedRoute>
+                <PrijemPDF />
               </ProtectedRoute>
             }
           />
