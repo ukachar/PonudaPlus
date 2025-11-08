@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { databases, storage } from "../../appwriteConfig";
 import SkeletonLoader from "../../helpers/SkeletonLoader";
+import Toast from "../components/Toast";
 
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE;
@@ -45,6 +46,7 @@ const Settings = () => {
   const [error, setError] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // 🔹 Dohvati postavke i primijeni temu
   useEffect(() => {
@@ -143,7 +145,13 @@ const Settings = () => {
         document.documentElement.setAttribute("data-theme", response.tema);
       }
 
-      alert("Postavke su spremljene.");
+      setToast({
+        title: "Postavke",
+        message: "Postavke su uspješno spremljene.",
+      });
+
+      // automatski sakrij toast nakon 3 sekunde
+      setTimeout(() => setToast(null), 3000);
     } catch (error) {
       console.error("Error updating settings:", error);
       alert("Greška prilikom spremanja postavki.");
@@ -221,6 +229,7 @@ const Settings = () => {
           </button>
         </div>
       </div>
+      {toast && <Toast message={toast.message} />}
     </div>
   );
 };

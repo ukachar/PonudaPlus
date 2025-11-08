@@ -361,14 +361,7 @@ const KreirajPonudu = () => {
 
           <div className="text-sm mt-auto">
             <p>Ponudu izdao: {user ? user.name : "Nepoznato"}</p>
-            <p>Način plaćanja: transakcijski račun</p>
-            <p>JIR i ZKI: [JIR i ZKI]</p>
-            <p>Članovi uprave: [Članovi uprave]</p>
-            <p>Temeljni kapital: [Temeljni kapital]</p>
-            <p>[Sud]</p>
-            <p>[Naziv banke]</p>
-            <p>IBAN: [Bankovni račun (IBAN)]</p>
-            <p>SWIFT/BIC: [SWIFT/BIC]</p>
+            <p className="text-center">Software: ukachar.com</p>
           </div>
         </div>
       </div>

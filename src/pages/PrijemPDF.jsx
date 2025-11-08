@@ -47,7 +47,6 @@ export default function PrijemPDF() {
     const pageHeight = 210;
     const margin = 2;
 
-    // Generiraj sliku iz HTML-a
     const canvas = await html2canvas(pdfRef.current, {
       useCORS: true,
       scale: 2,
@@ -56,21 +55,26 @@ export default function PrijemPDF() {
     const imgData = canvas.toDataURL("image/png");
     const imgWidth = pageWidth - 2 * margin;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    // Dodaj sliku i centriraj ako je niža od stranice
     const yOffset = Math.max(margin, (pageHeight - imgHeight) / 2);
+
     pdf.addImage(imgData, "PNG", margin, yOffset, imgWidth, imgHeight);
 
-    // Umjesto dataurlnewwindow koristi bloburl (radi sigurnije)
-    const blobUrl = pdf.output("bloburl");
-    window.open(blobUrl, "_blank");
+    // Kreiraj Blob i URL
+    const blob = pdf.output("blob");
+    const url = URL.createObjectURL(blob);
+
+    // Otvori novi tab s PDF-om
+    window.open(url, "_blank");
   };
 
+  const [pdfGenerated, setPdfGenerated] = useState(false);
+
   useEffect(() => {
-    if (prijem && settings) {
-      setTimeout(generatePDF, 500);
+    if (prijem && settings && !pdfGenerated) {
+      setPdfGenerated(true);
+      generatePDF();
     }
-  }, [prijem, settings]);
+  }, [prijem, settings, pdfGenerated]);
 
   if (!prijem || !settings) return <p>Dohvaćanje podataka...</p>;
 

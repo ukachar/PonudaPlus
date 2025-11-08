@@ -55,7 +55,6 @@ export default function QRLabelPrint() {
             alt="QR Code"
             className="mb-3"
           />
-
           {/* Informacije */}
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-1">{stavka.naziv}</h2>
@@ -67,7 +66,6 @@ export default function QRLabelPrint() {
             </p>
             <p className="text-xs text-gray-600">{prijem.datum_prijema}</p>
           </div>
-
           {/* ID za skeniranje */}
           <div className="mt-2 text-xs text-gray-500">ID: {id.slice(-8)}</div>
         </div>

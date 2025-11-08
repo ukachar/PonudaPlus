@@ -843,6 +843,21 @@ const Prijem = () => {
                       >
                         Uredi
                       </button>
+                      <Link
+                        to={`/prijem-pdf/${prijem.$id}`}
+                        target="_blank"
+                        className="btn btn-sm btn-secondary"
+                      >
+                        Print
+                      </Link>
+                      <Link
+                        to={`/qr-label/${prijem.$id}`}
+                        target="_blank"
+                        className="btn btn-sm btn-info"
+                        title="Print QR Label"
+                      >
+                        QR
+                      </Link>
                       <button
                         onClick={() => obrisiPrijem(prijem.$id)}
                         className="btn btn-sm btn-error"
@@ -850,13 +865,6 @@ const Prijem = () => {
                       >
                         Obriši
                       </button>
-
-                      <Link
-                        to={`/prijem-pdf/${prijem.$id}`}
-                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                      >
-                        🖨️ Printaj prijem
-                      </Link>
                     </td>
                   </tr>
                 );
@@ -931,6 +939,20 @@ const Prijem = () => {
                 </div>
 
                 <div className="form-control col-span-2">
+                  <label className="label">
+                    <span className="label-text">Adresa</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="adresa"
+                    value={formData.adresa}
+                    onChange={handleInputChange}
+                    className="input input-bordered"
+                    placeholder="Ulica i broj, grad"
+                  />
+                </div>
+
+                <div className="form-control">
                   <label className="label">
                     <span className="label-text">Datum Prijema</span>
                   </label>
@@ -1042,8 +1064,8 @@ const Prijem = () => {
                   <table className="table table-compact w-full">
                     <thead>
                       <tr>
-                        <th>Naziv</th>
                         <th>Šifra</th>
+                        <th>Naziv</th>
                         <th>Opis</th>
                         <th>Stanje</th>
                         <th></th>
@@ -1052,10 +1074,10 @@ const Prijem = () => {
                     <tbody>
                       {formData.stavke.map((stavka) => (
                         <tr key={stavka.id}>
-                          <td>{stavka.naziv}</td>
                           <td>
                             <span className="badge">{stavka.sifra}</span>
                           </td>
+                          <td>{stavka.naziv}</td>
                           <td>
                             <input
                               type="text"
@@ -1116,6 +1138,41 @@ const Prijem = () => {
                   className="textarea textarea-bordered h-20"
                   placeholder="Dodatne napomene..."
                 ></textarea>
+              </div>
+
+              <div className="divider">Plaćanje</div>
+
+              {/* Cijena i plaćanje */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Cijena (€)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="cijena"
+                    value={formData.cijena}
+                    onChange={handleInputChange}
+                    className="input input-bordered"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <label className="label cursor-pointer">
+                    <span className="label-text">Plaćeno?</span>
+                    <input
+                      type="checkbox"
+                      name="placeno"
+                      checked={formData.placeno}
+                      onChange={(e) =>
+                        setFormData({ ...formData, placeno: e.target.checked })
+                      }
+                      className="checkbox checkbox-success"
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Gumbi */}
@@ -1208,8 +1265,8 @@ const Prijem = () => {
               <table className="table table-compact w-full">
                 <thead>
                   <tr>
-                    <th>Naziv</th>
                     <th>Šifra</th>
+                    <th>Naziv</th>
                     <th>Kategorija</th>
                     <th></th>
                   </tr>
@@ -1217,12 +1274,12 @@ const Prijem = () => {
                 <tbody>
                   {stavkeDatabase.map((stavka) => (
                     <tr key={stavka.$id}>
-                      <td>{stavka.naziv}</td>
                       <td>
                         <span className="badge badge-primary">
                           {stavka.sifra}
                         </span>
                       </td>
+                      <td>{stavka.naziv}</td>
                       <td>
                         <span className="badge badge-ghost">
                           {stavka.kategorija || "-"}
