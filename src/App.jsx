@@ -11,6 +11,7 @@ import UrediPonudu from "./pages/UrediPonudu";
 import Header from "./components/Header";
 import PonudaPDF from "./pages/PonudaPDF";
 import PrijemPDF from "./pages/PrijemPDF";
+import QRLabelPrint from "./pages/QRLabelPrint";
 
 function App() {
   return (
@@ -90,6 +91,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <PrijemPDF />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/qr-label/:id"
+            element={
+              <ProtectedRoute>
+                <QRLabelPrint />
               </ProtectedRoute>
             }
           />

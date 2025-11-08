@@ -136,7 +136,27 @@ export default function PrijemPDF() {
               .toLocaleDateString("hr-HR")
               .replaceAll(" ", "")}
           </p>
-
+          {/* Cijena i plaćanje */}
+          {prijem.cijena > 0 && (
+            <div className="mt-6 p-4 bg-gray-50 rounded border border-gray-300">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-bold">Ukupna cijena:</span>
+                <span className="text-2xl font-bold">
+                  {prijem.cijena.toFixed(2)} €
+                </span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span>Status plaćanja:</span>
+                <span
+                  className={`badge ${
+                    prijem.placeno ? "badge-success" : "badge-error"
+                  }`}
+                >
+                  {prijem.placeno ? "PLAĆENO" : "NIJE PLAĆENO"}
+                </span>
+              </div>
+            </div>
+          )}
           <p>
             <strong>Zaprimio:</strong> {user ? user.name : "Nepoznato"}
           </p>

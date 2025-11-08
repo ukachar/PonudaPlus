@@ -3,12 +3,38 @@ import { databases } from "../../appwriteConfig";
 import { ID, Query } from "appwrite";
 import { Link } from "react-router-dom";
 
-// Mock databases object za demonstraciju - zamijeniti sa pravim
-const mockDatabases = {
-  listDocuments: async () => ({ documents: [] }),
-  createDocument: async () => ({ $id: "test" }),
-  updateDocument: async () => ({}),
-  deleteDocument: async () => ({}),
+// Export funkcije
+const exportToExcel = (data, filename = "export.csv") => {
+  const csvContent = convertToCSV(data);
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const link = document.createElement("a");
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+const convertToCSV = (data) => {
+  if (!data || data.length === 0) return "";
+  const headers = Object.keys(data[0]);
+  const csvRows = [];
+  csvRows.push(headers.join(","));
+  for (const row of data) {
+    const values = headers.map((header) => {
+      const value = row[header];
+      const escaped = ("" + value).replace(/"/g, '""');
+      return `"${escaped}"`;
+    });
+    csvRows.push(values.join(","));
+  }
+  return csvRows.join("\n");
 };
 
 const Prijem = () => {
@@ -36,6 +62,8 @@ const Prijem = () => {
     datum_prijema: new Date().toISOString().split("T")[0],
     stavke: [],
     napomena: "",
+    cijena: 0,
+    placeno: false,
   });
 
   // State za novu stavku u formi
@@ -54,6 +82,13 @@ const Prijem = () => {
   // State za loading i error
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // State za search i filtere
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
 
   // Nova stavka u bazi (admin dodaje nove tipove strojeva/dijelova)
   const [novaStavkaBaza, setNovaStavkaBaza] = useState({
@@ -256,6 +291,8 @@ const Prijem = () => {
       datum_prijema: new Date().toISOString().split("T")[0],
       stavke: [],
       napomena: "",
+      cijena: 0,
+      placeno: false,
     });
     setNovaStavka({
       naziv: "",
@@ -279,6 +316,8 @@ const Prijem = () => {
       datum_prijema: prijem.datum_prijema,
       stavke: prijem.stavke ? JSON.parse(prijem.stavke) : [],
       napomena: prijem.napomena || "",
+      cijena: prijem.cijena || 0,
+      placeno: prijem.placeno || false,
     });
     setCurrentId(prijem.$id);
     setEditMode(true);
@@ -361,6 +400,116 @@ const Prijem = () => {
     }
   };
 
+  // Filtriraj prijeme prema search i filterima
+  const filteredPrijemi = prijemi.filter((prijem) => {
+    const stavke = prijem.stavke ? JSON.parse(prijem.stavke) : [];
+
+    // Search filter
+    const matchesSearch =
+      searchQuery === "" ||
+      `${prijem.ime_kupca} ${prijem.prezime_kupca}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      prijem.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prijem.mobitel?.includes(searchQuery) ||
+      stavke.some(
+        (s) =>
+          s.naziv.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.sifra.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === "na_pregledu") {
+      matchesStatus = stavke.some((s) => s.stanje === "Na pregledu");
+    } else if (statusFilter === "u_popravku") {
+      matchesStatus = stavke.some((s) => s.stanje === "U popravku");
+    } else if (statusFilter === "gotovo") {
+      matchesStatus = stavke.every((s) => s.stanje === "Gotovo");
+    } else if (statusFilter === "ceka_dio") {
+      matchesStatus = stavke.some((s) => s.stanje === "Čeka dio");
+    }
+
+    // Date filter
+    let matchesDate = true;
+    const prijemDate = new Date(prijem.datum_prijema);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (dateFilter === "today") {
+      matchesDate = prijemDate.toDateString() === today.toDateString();
+    } else if (dateFilter === "week") {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      matchesDate = prijemDate >= weekAgo;
+    } else if (dateFilter === "month") {
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      matchesDate = prijemDate >= monthAgo;
+    } else if (dateFilter === "custom" && customDateFrom && customDateTo) {
+      const dateFrom = new Date(customDateFrom);
+      const dateTo = new Date(customDateTo);
+      matchesDate = prijemDate >= dateFrom && prijemDate <= dateTo;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  // Statistika za filtrirane prijeme
+  const getStatusCount = (status) => {
+    return prijemi.filter((p) => {
+      const stavke = p.stavke ? JSON.parse(p.stavke) : [];
+      if (status === "Gotovo")
+        return stavke.every((s) => s.stanje === "Gotovo");
+      return stavke.some((s) => s.stanje === status);
+    }).length;
+  };
+
+  // Export funkcije
+  const exportPrijemiToExcel = () => {
+    const data = filteredPrijemi.map((p) => {
+      const stavke = p.stavke ? JSON.parse(p.stavke) : [];
+      return {
+        Datum: p.datum_prijema,
+        Ime: p.ime_kupca,
+        Prezime: p.prezime_kupca,
+        Email: p.email || "",
+        Mobitel: p.mobitel || "",
+        Adresa: p.adresa || "",
+        "Broj stavki": stavke.length,
+        "Cijena (€)": p.cijena || 0,
+        Plaćeno: p.placeno ? "Da" : "Ne",
+        Napomena: p.napomena || "",
+        ID: p.$id,
+      };
+    });
+    const datum = new Date().toISOString().split("T")[0];
+    exportToExcel(data, `prijemi_${datum}.csv`);
+  };
+
+  const exportStavkeToExcel = () => {
+    const data = stavkeDatabase.map((s) => ({
+      Šifra: s.sifra,
+      Naziv: s.naziv,
+      Kategorija: s.kategorija || "",
+      ID: s.$id,
+    }));
+    const datum = new Date().toISOString().split("T")[0];
+    exportToExcel(data, `stavke_${datum}.csv`);
+  };
+
+  // Provjera za stare prijeme (duže od X dana)
+  const getOldPrijemi = (days = 7) => {
+    const today = new Date();
+    return prijemi.filter((p) => {
+      const stavke = p.stavke ? JSON.parse(p.stavke) : [];
+      const isNotFinished = !stavke.every((s) => s.stanje === "Gotovo");
+      const prijemDate = new Date(p.datum_prijema);
+      const daysDiff = Math.floor((today - prijemDate) / (1000 * 60 * 60 * 24));
+      return isNotFinished && daysDiff > days;
+    });
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -387,6 +536,22 @@ const Prijem = () => {
           >
             Upravljaj Stavkama
           </button>
+          <div className="dropdown dropdown-end inline-block">
+            <label tabIndex={0} className="btn btn-accent">
+              📥 Export
+            </label>
+            <ul
+              tabIndex={0}
+              className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-50"
+            >
+              <li>
+                <a onClick={exportPrijemiToExcel}>Export Prijeme (Excel)</a>
+              </li>
+              <li>
+                <a onClick={exportStavkeToExcel}>Export Stavke (Excel)</a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -410,10 +575,11 @@ const Prijem = () => {
           </div>
           <div className="stat-title">Ukupno Prijema</div>
           <div className="stat-value text-primary">{prijemi.length}</div>
+          <div className="stat-desc">Filtrirano: {filteredPrijemi.length}</div>
         </div>
 
         <div className="stat">
-          <div className="stat-figure text-secondary">
+          <div className="stat-figure text-warning">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -424,15 +590,177 @@ const Prijem = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               ></path>
             </svg>
           </div>
-          <div className="stat-title">Stavki u Bazi</div>
-          <div className="stat-value text-secondary">
-            {stavkeDatabase.length}
+          <div className="stat-title">U Obradi</div>
+          <div className="stat-value text-warning">
+            {getStatusCount("U popravku")}
           </div>
         </div>
+
+        <div className="stat">
+          <div className="stat-figure text-success">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="inline-block w-8 h-8 stroke-current"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <div className="stat-title">Gotovo</div>
+          <div className="stat-value text-success">
+            {getStatusCount("Gotovo")}
+          </div>
+        </div>
+
+        <div className="stat">
+          <div className="stat-figure text-error">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="inline-block w-8 h-8 stroke-current"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              ></path>
+            </svg>
+          </div>
+          <div className="stat-title">Duže od 7 dana</div>
+          <div className="stat-value text-error">{getOldPrijemi(7).length}</div>
+          <div
+            className="stat-desc cursor-pointer hover:underline"
+            onClick={() => {
+              const old = getOldPrijemi(7);
+              if (old.length > 0) {
+                alert(
+                  `Stari prijemi:\n\n${old
+                    .map(
+                      (p) =>
+                        `${p.ime_kupca} ${p.prezime_kupca} - ${p.datum_prijema}`
+                    )
+                    .join("\n")}`
+                );
+              }
+            }}
+          >
+            Klikni za detalje
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="bg-base-100 p-4 rounded-lg shadow mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">🔍 Pretraži</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Ime, email, mobitel, šifra..."
+              className="input input-bordered"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">📊 Status</span>
+            </label>
+            <select
+              className="select select-bordered"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">Svi statusi</option>
+              <option value="na_pregledu">Na pregledu</option>
+              <option value="u_popravku">U popravku</option>
+              <option value="gotovo">Gotovo</option>
+              <option value="ceka_dio">Čeka dio</option>
+            </select>
+          </div>
+
+          {/* Date Filter */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">📅 Datum</span>
+            </label>
+            <select
+              className="select select-bordered"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            >
+              <option value="all">Svi datumi</option>
+              <option value="today">Danas</option>
+              <option value="week">Zadnjih 7 dana</option>
+              <option value="month">Zadnjih 30 dana</option>
+              <option value="custom">Prilagođeno</option>
+            </select>
+          </div>
+
+          {/* Clear Filters */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">&nbsp;</span>
+            </label>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setDateFilter("all");
+                setCustomDateFrom("");
+                setCustomDateTo("");
+              }}
+            >
+              ✕ Očisti filtere
+            </button>
+          </div>
+        </div>
+
+        {/* Custom Date Range */}
+        {dateFilter === "custom" && (
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Od datuma</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={customDateFrom}
+                onChange={(e) => setCustomDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Do datuma</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered"
+                value={customDateTo}
+                onChange={(e) => setCustomDateTo(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tablica */}
@@ -443,6 +771,7 @@ const Prijem = () => {
               <th>Datum</th>
               <th>Kupac</th>
               <th>Kontakt</th>
+              <th>Cijena</th>
               <th>Broj Stavki</th>
               <th>Status</th>
               <th className="text-center">Akcije</th>
@@ -451,22 +780,22 @@ const Prijem = () => {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan="6" className="text-center">
+                <td colSpan="7" className="text-center">
                   <span className="loading loading-spinner loading-lg"></span>
                 </td>
               </tr>
             )}
 
-            {!loading && prijemi.length === 0 && (
+            {!loading && filteredPrijemi.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center text-gray-500 py-8">
-                  Nema prijema. Kliknite "Novi Prijem" za dodavanje.
+                <td colSpan="7" className="text-center text-gray-500 py-8">
+                  Nema prijema koji odgovaraju filterima.
                 </td>
               </tr>
             )}
 
             {!loading &&
-              prijemi.map((prijem) => {
+              filteredPrijemi.map((prijem) => {
                 const stavke = prijem.stavke ? JSON.parse(prijem.stavke) : [];
                 return (
                   <tr key={prijem.$id} className="hover">
@@ -480,6 +809,20 @@ const Prijem = () => {
                     <td>
                       <div>{prijem.mobitel}</div>
                       <div className="text-sm opacity-50">{prijem.adresa}</div>
+                    </td>
+                    <td>
+                      <div className="font-bold">
+                        {prijem.cijena ? `${prijem.cijena.toFixed(2)} €` : "-"}
+                      </div>
+                      {prijem.placeno ? (
+                        <div className="badge badge-success badge-sm">
+                          Plaćeno
+                        </div>
+                      ) : (
+                        <div className="badge badge-error badge-sm">
+                          Nije plaćeno
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div className="badge badge-ghost">
@@ -500,13 +843,6 @@ const Prijem = () => {
                       >
                         Uredi
                       </button>
-                      <Link
-                        to={`/prijem-pdf/${prijem.$id}`}
-                        target="_blank"
-                        className="btn btn-sm btn-secondary"
-                      >
-                        Print
-                      </Link>
                       <button
                         onClick={() => obrisiPrijem(prijem.$id)}
                         className="btn btn-sm btn-error"
@@ -514,6 +850,13 @@ const Prijem = () => {
                       >
                         Obriši
                       </button>
+
+                      <Link
+                        to={`/prijem-pdf/${prijem.$id}`}
+                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                      >
+                        🖨️ Printaj prijem
+                      </Link>
                     </td>
                   </tr>
                 );
@@ -588,19 +931,6 @@ const Prijem = () => {
                 </div>
 
                 <div className="form-control col-span-2">
-                  <label className="label">
-                    <span className="label-text">Adresa</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="adresa"
-                    value={formData.adresa}
-                    onChange={handleInputChange}
-                    className="input input-bordered"
-                  />
-                </div>
-
-                <div className="form-control">
                   <label className="label">
                     <span className="label-text">Datum Prijema</span>
                   </label>
@@ -712,8 +1042,8 @@ const Prijem = () => {
                   <table className="table table-compact w-full">
                     <thead>
                       <tr>
-                        <th>Šifra</th>
                         <th>Naziv</th>
+                        <th>Šifra</th>
                         <th>Opis</th>
                         <th>Stanje</th>
                         <th></th>
@@ -722,10 +1052,10 @@ const Prijem = () => {
                     <tbody>
                       {formData.stavke.map((stavka) => (
                         <tr key={stavka.id}>
+                          <td>{stavka.naziv}</td>
                           <td>
                             <span className="badge">{stavka.sifra}</span>
                           </td>
-                          <td>{stavka.naziv}</td>
                           <td>
                             <input
                               type="text"
@@ -878,8 +1208,8 @@ const Prijem = () => {
               <table className="table table-compact w-full">
                 <thead>
                   <tr>
-                    <th>Šifra</th>
                     <th>Naziv</th>
+                    <th>Šifra</th>
                     <th>Kategorija</th>
                     <th></th>
                   </tr>
@@ -887,12 +1217,12 @@ const Prijem = () => {
                 <tbody>
                   {stavkeDatabase.map((stavka) => (
                     <tr key={stavka.$id}>
+                      <td>{stavka.naziv}</td>
                       <td>
                         <span className="badge badge-primary">
                           {stavka.sifra}
                         </span>
                       </td>
-                      <td>{stavka.naziv}</td>
                       <td>
                         <span className="badge badge-ghost">
                           {stavka.kategorija || "-"}

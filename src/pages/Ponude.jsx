@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { databases } from "../../appwriteConfig";
 import { Link } from "react-router-dom";
 import { Query } from "appwrite";
+import SkeletonLoader from "../../helpers/SkeletonLoader";
 
 export default function Ponude() {
   const [ponude, setPonude] = useState([]);

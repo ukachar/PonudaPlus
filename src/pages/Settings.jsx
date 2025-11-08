@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { databases, storage } from "../../appwriteConfig";
+import SkeletonLoader from "../../helpers/SkeletonLoader";
 
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE;
@@ -79,7 +80,7 @@ const Settings = () => {
     fetchData();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <SkeletonLoader />;
   if (error) return <p>Error fetching data: {error.message}</p>;
 
   const handleChange = (e) => {
