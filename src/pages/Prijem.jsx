@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { databases } from "../../appwriteConfig";
 import { ID, Query } from "appwrite";
 import { Link } from "react-router-dom";
+import logger from "../../helpers/logger";
 
-// Export funkcije
 const exportToExcel = (data, filename = "export.csv") => {
   const csvContent = convertToCSV(data);
   const blob = new Blob(["\uFEFF" + csvContent], {
@@ -244,10 +244,13 @@ const Prijem = () => {
     }
 
     try {
+      logger.logPrijem("Prijem create started", {
+        kupac: formData.ime_kupca,
+      });
       setLoading(true);
 
       if (editMode) {
-        await databases.updateDocument(
+        const response = await databases.updateDocument(
           import.meta.env.VITE_APPWRITE_DATABASE,
           import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
           currentId,
@@ -256,8 +259,12 @@ const Prijem = () => {
             stavke: JSON.stringify(formData.stavke),
           }
         );
+        logger.logPrijem("Prijem updated successfully", {
+          id: response.$id,
+          kupac: formData.ime_kupca,
+        });
       } else {
-        await databases.createDocument(
+        const response = await databases.createDocument(
           import.meta.env.VITE_APPWRITE_DATABASE,
           import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
           ID.unique(),
@@ -266,6 +273,10 @@ const Prijem = () => {
             stavke: JSON.stringify(formData.stavke),
           }
         );
+        logger.logPrijem("Prijem created successfully", {
+          id: response.$id,
+          kupac: formData.ime_kupca,
+        });
       }
 
       // Reset i zatvori modal
@@ -275,6 +286,10 @@ const Prijem = () => {
     } catch (err) {
       console.error("Greška pri spremanju prijema:", err);
       alert("Došlo je do greške pri spremanju");
+      logger.error("Prijem create failed", {
+        error: err.message,
+        kupac: formData.ime_kupca,
+      });
     } finally {
       setLoading(false);
     }
