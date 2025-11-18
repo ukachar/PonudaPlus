@@ -200,7 +200,12 @@ const KreirajPonudu = () => {
               className="input input-bordered"
             />
 
+            <label htmlFor="valuta" className="font-medium">
+              Ponuda vrijedi (dani):
+            </label>
             <input
+              id="valuta"
+              name="valuta"
               type="number"
               value={daysValid}
               onChange={(e) => setDaysValid(Number(e.target.value))}
@@ -211,6 +216,16 @@ const KreirajPonudu = () => {
 
           <hr className="my-6" />
           <h3 className="text-lg font-semibold mb-2">Dodaj artikle</h3>
+
+          {/* Labels */}
+          <div className="grid grid-cols-5 gap-2 text-xs font-semibold mb-1 px-1">
+            <span>Naziv artikla</span>
+            <span>Količina</span>
+            <span>Cijena (€)</span>
+            <span>Rabat (%)</span>
+            <span>Ukloni</span>
+          </div>
+
           {items.map((item, index) => (
             <div
               key={index}

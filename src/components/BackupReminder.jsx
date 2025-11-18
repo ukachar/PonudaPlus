@@ -2,12 +2,20 @@
 import React, { useEffect, useState } from "react";
 import backupManager from "../../helpers/backup";
 import logger from "../../helpers/logger";
+import { useAuth } from "../auth/AuthContext"; // DODAJ OVO
 
 const BackupReminder = () => {
+  const { user } = useAuth(); // DODAJ OVO - provjeri da li je user logiran
   const [showReminder, setShowReminder] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    // DODAJ PROVJERU - prikaži samo ako je user logiran
+    if (!user) {
+      setShowReminder(false);
+      return;
+    }
+
     // Provjeri da li je potreban backup
     const shouldRemind = backupManager.checkBackupReminder();
 
@@ -19,7 +27,7 @@ const BackupReminder = () => {
       setShowReminder(true);
       logger.info("Backup reminder shown");
     }
-  }, [dismissed]);
+  }, [dismissed, user]); // DODAJ 'user' u dependencies
 
   const handleDownloadBackup = async () => {
     try {
@@ -54,12 +62,13 @@ const BackupReminder = () => {
     logger.info("Backup reminder snoozed");
   };
 
-  if (!showReminder) return null;
+  // NE PRIKAZUJ ništa ako user nije logiran
+  if (!user || !showReminder) return null;
 
   return (
     <div className="toast toast-top toast-center z-50">
-      <div className="alert alert-warning shadow-lg max-w-md">
-        <div>
+      <div className="alert alert-warning shadow-lg max-w-md flex flex-col">
+        <div className="flex items-start gap-3">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="stroke-current flex-shrink-0 h-6 w-6"
@@ -74,22 +83,23 @@ const BackupReminder = () => {
             />
           </svg>
           <div>
-            <h3 className="font-bold">⏰ Podsjetnik za Backup!</h3>
-            <div className="text-xs">
+            <h3 className="font-bold">Podsjetnik za Backup!</h3>
+            <div className="text-xs mt-1">
               Dugo nisi napravio backup podataka. Preporučujemo da sačuvaš
               kopiju!
             </div>
           </div>
         </div>
-        <div className="flex-none">
+
+        <div className="flex gap-2 mt-3">
           <button
             className="btn btn-sm btn-success"
             onClick={handleDownloadBackup}
           >
-            💾 Preuzmi Backup
+            Preuzmi
           </button>
           <button className="btn btn-sm btn-ghost" onClick={handleSnooze}>
-            😴 Sutra
+            Sutra
           </button>
           <button className="btn btn-sm btn-ghost" onClick={handleDismiss}>
             ✕

@@ -48,6 +48,7 @@ const Header = () => {
         <Link to="/dashboard" className="btn btn-ghost text-xl">
           Ponuda+
         </Link>
+        <span className="badge">v 1.0</span>
       </div>
       <div className="flex-none gap-2">
         <Link to="/dashboard" className="btn btn-ghost">

@@ -12,12 +12,10 @@ import Header from "./components/Header";
 import PonudaPDF from "./pages/PonudaPDF";
 import PrijemPDF from "./pages/PrijemPDF";
 import QRLabelPrint from "./pages/QRLabelPrint";
-import BackupReminder from "./components/BackupReminder";
 
 function App() {
   return (
     <AuthProvider>
-      <BackupReminder />
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />

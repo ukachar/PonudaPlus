@@ -1,6 +1,6 @@
 // helpers/logger.js
-import { databases } from "../appwriteConfig";
-import { ID, Account } from "appwrite";
+import { databases, account } from "../appwriteConfig";
+import { ID } from "appwrite";
 
 class Logger {
   constructor() {
@@ -26,13 +26,11 @@ class Logger {
     if (!this.isEnabled) return;
 
     try {
-      // Dohvati trenutno prijavljenog korisnika iz Appwrite-a
       let userId = "unknown";
       let userName = "Unknown User";
 
       try {
-        const account = Account;
-        const currentUser = await account.get(); // dohvaća prijavljenog korisnika
+        const currentUser = await account.get(); // ✅ sad radi
         userId = currentUser.$id || "unknown";
         userName = currentUser.name || currentUser.email || "Unknown User";
       } catch (err) {
@@ -49,7 +47,6 @@ class Logger {
         userName,
       };
 
-      // Spremi log u Appwrite
       await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_LOGS_COLLECTION,
@@ -57,7 +54,6 @@ class Logger {
         logEntry
       );
 
-      // Backup lokalno
       this.saveToLocalStorage(logEntry);
     } catch (err) {
       console.error("Logging error:", err);

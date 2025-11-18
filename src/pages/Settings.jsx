@@ -3,6 +3,7 @@ import { databases, storage } from "../../appwriteConfig";
 import backupManager from "../../helpers/backup";
 import logger from "../../helpers/logger";
 import { Query } from "appwrite";
+import Toast from "../components/Toast";
 
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE;
@@ -57,6 +58,18 @@ const Settings = () => {
   const [logs, setLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
+
+  // Toast state
+  const [toastConfig, setToastConfig] = useState(null);
+
+  const showToast = (type, title, message) => {
+    setToastConfig({ type, title, message });
+
+    // Automatsko zatvaranje nakon 5 sekundi
+    setTimeout(() => {
+      setToastConfig(null);
+    }, 5000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -170,11 +183,11 @@ const Settings = () => {
         fields: Object.keys(updatedData),
       });
 
-      alert("Postavke su spremljene.");
+      showToast("success", "Postavke su spremljene.");
     } catch (error) {
       console.error("Error updating settings:", error);
       logger.error("Settings update failed", { error: error.message });
-      alert("Greška prilikom spremanja postavki.");
+      showToast("error", "Greška prilikom spremanja postavki", error.message);
     }
   };
 
@@ -185,11 +198,11 @@ const Settings = () => {
       await backupManager.downloadBackup();
       setLastBackupDate(new Date());
       logger.logSettings("Backup downloaded");
-      alert("Backup uspješno preuzet!");
+      showToast("success", "Backup uspješno preuzet!");
     } catch (err) {
       console.error("Backup error:", err);
       logger.error("Backup download failed", { error: err.message });
-      alert("Greška prilikom kreiranja backupa.");
+      showToast("error", "Greška prilikom kreiranja backupa", err.message);
     } finally {
       setBackupLoading(false);
     }
@@ -197,7 +210,7 @@ const Settings = () => {
 
   const handleRestoreBackup = async () => {
     if (!restoreFile) {
-      alert("Odaberite backup file");
+      showToast("error", "Odaberite backup file");
       return;
     }
 
@@ -219,14 +232,27 @@ const Settings = () => {
 
           logger.logSettings("Backup restored", { results });
 
-          alert(
-            `Restore završen!\n\n` +
-              `Prijemi: ${results.prijemi}\n` +
-              `Ponude: ${results.ponude}\n` +
-              `Stavke: ${results.stavke}\n` +
-              `Greške: ${results.errors.length}\n\n` +
-              (results.errors.length > 0
-                ? `Prva greška: ${results.errors[0]}`
+          showToast(
+            "success",
+            `✅ Restore završen!\n\n` +
+              `📋 PRIJEMI:\n` +
+              `  - Kreirano: ${results.prijemi.created}\n` +
+              `  - Ažurirano: ${results.prijemi.updated}\n` +
+              `  - Neuspjelo: ${results.prijemi.failed}\n\n` +
+              `📄 PONUDE:\n` +
+              `  - Kreirano: ${results.ponude.created}\n` +
+              `  - Ažurirano: ${results.ponude.updated}\n` +
+              `  - Neuspjelo: ${results.ponude.failed}\n\n` +
+              `🔧 STAVKE:\n` +
+              `  - Kreirano: ${results.stavke.created}\n` +
+              `  - Ažurirano: ${results.stavke.updated}\n` +
+              `  - Neuspjelo: ${results.stavke.failed}\n\n` +
+              `⚙️ SETTINGS: ${results.settings.updated ? "✅" : "❌"}\n\n` +
+              `❌ Ukupno grešaka: ${results.errors.length}\n` +
+              (results.errors.length > 0 && results.errors.length <= 5
+                ? `\nGreške:\n${results.errors.join("\n")}`
+                : results.errors.length > 5
+                ? `\nPrvih 5 grešaka:\n${results.errors.slice(0, 5).join("\n")}`
                 : "")
           );
 
@@ -235,7 +261,7 @@ const Settings = () => {
         } catch (err) {
           console.error("Restore error:", err);
           logger.error("Backup restore failed", { error: err.message });
-          alert("Greška prilikom restore-a: " + err.message);
+          showToast("error", "Greška prilikom restore-a", err.message);
         } finally {
           setBackupLoading(false);
         }
@@ -254,10 +280,10 @@ const Settings = () => {
       setBackupLoading(true);
       await backupManager.createEmergencyBackup();
       logger.logSettings("Emergency backup created");
-      alert("Emergency backup spremljen u browser storage!");
+      showToast("success", "Emergency backup spremljen u browser storage!");
     } catch (err) {
       logger.error("Emergency backup failed", { error: err.message });
-      alert("Greška pri kreiranju emergency backupa.");
+      showToast("error", "Greška pri kreiranju emergency backupa", err.message);
     } finally {
       setBackupLoading(false);
     }
@@ -275,7 +301,7 @@ const Settings = () => {
       logger.logSettings("Logs viewed");
     } catch (err) {
       console.error("Logs fetch error:", err);
-      alert("Greška pri dohvaćanju logova.");
+      showToast("error", "Greška pri dohvaćanju logova", err.message);
     } finally {
       setLogsLoading(false);
     }
@@ -300,10 +326,10 @@ const Settings = () => {
       URL.revokeObjectURL(url);
 
       logger.logSettings("Logs exported");
-      alert("Logs uspješno exportani!");
+      showToast("success", "Logs uspješno exportani!");
     } catch (err) {
       console.error("Export logs error:", err);
-      alert("Greška pri exportu logova.");
+      showToast("error", "Greška pri exportu logova", err.message);
     }
   };
 
@@ -314,11 +340,11 @@ const Settings = () => {
     try {
       const deleted = await logger.clearOldLogs(parseInt(days));
       logger.logSettings("Old logs cleared", { daysOld: days, deleted });
-      alert(`Obrisano ${deleted} starih logova.`);
+      showToast("success", `Obrisano ${deleted} starih logova.`);
       handleViewLogs(); // Refresh
     } catch (err) {
       console.error("Clear logs error:", err);
-      alert("Greška pri brisanju logova.");
+      showToast("error", "Greška pri brisanju logova", err.message);
     }
   };
 
@@ -335,7 +361,7 @@ const Settings = () => {
             name="settings_tabs"
             role="tab"
             className="tab"
-            aria-label="Opće"
+            aria-label="Općenito"
             defaultChecked
           />
           <div role="tabpanel" className="tab-content p-6">
@@ -406,7 +432,7 @@ const Settings = () => {
             aria-label="Backup"
           />
           <div role="tabpanel" className="tab-content p-6">
-            <h3 className="text-xl font-bold mb-4">💾 Backup & Restore</h3>
+            <h3 className="text-xl font-bold mb-4">Backup & Restore</h3>
 
             {lastBackupDate && (
               <div className="alert alert-info mb-4">
@@ -459,7 +485,7 @@ const Settings = () => {
                     Kreiram backup...
                   </>
                 ) : (
-                  <>📥 Preuzmi Backup</>
+                  <>Preuzmi Backup</>
                 )}
               </button>
 
@@ -469,7 +495,48 @@ const Settings = () => {
                 onClick={handleEmergencyBackup}
                 disabled={backupLoading}
               >
-                🚨 Emergency Backup (Local)
+                Emergency Backup (Local)
+              </button>
+
+              {/* Restore iz emergency backupa */}
+              <button
+                className="btn btn-warning w-full"
+                onClick={async () => {
+                  const emergency = backupManager.getEmergencyBackup();
+                  if (!emergency) {
+                    showToast("error", "Nema emergency backupa!");
+                    return;
+                  }
+
+                  const confirm = window.confirm(
+                    `Emergency backup pronađen!\n` +
+                      `Datum: ${emergency.date.toLocaleString("hr-HR")}\n\n` +
+                      `Restore?`
+                  );
+
+                  if (!confirm) return;
+
+                  try {
+                    setBackupLoading(true);
+                    const results =
+                      await backupManager.restoreFromEmergencyBackup();
+                    logger.logSettings("Emergency backup restored", {
+                      results,
+                    });
+                    showToast("success", "Emergency backup uspješno restored!");
+                    window.location.reload();
+                  } catch (err) {
+                    logger.error("Emergency restore failed", {
+                      error: err.message,
+                    });
+                    showToast("error", "Greška: " + err.message);
+                  } finally {
+                    setBackupLoading(false);
+                  }
+                }}
+                disabled={backupLoading}
+              >
+                Restore Emergency Backup
               </button>
 
               <div className="divider">Restore</div>
@@ -500,14 +567,14 @@ const Settings = () => {
                     Restore u tijeku...
                   </>
                 ) : (
-                  <>⚠️ Restore iz Backupa</>
+                  <>Restore iz Backupa</>
                 )}
               </button>
 
               <div className="alert alert-warning">
                 <span className="text-xs">
-                  ⚠️ UPOZORENJE: Restore će pokušati vratiti sve podatke.
-                  Kreirajte backup trenutnog stanja prije restore-a!
+                  UPOZORENJE: Restore će pokušati vratiti sve podatke. Kreirajte
+                  backup trenutnog stanja prije restore-a!
                 </span>
               </div>
             </div>
@@ -521,7 +588,7 @@ const Settings = () => {
             aria-label="Logging"
           />
           <div role="tabpanel" className="tab-content p-6">
-            <h3 className="text-xl font-bold mb-4">📊 Logging System</h3>
+            <h3 className="text-xl font-bold mb-4">Logging System</h3>
 
             <div className="space-y-4">
               {/* Enable/Disable logging */}
@@ -570,7 +637,7 @@ const Settings = () => {
                     Učitavam...
                   </>
                 ) : (
-                  <>👁️ Pregledaj Logove</>
+                  <>Pregledaj Logove</>
                 )}
               </button>
 
@@ -578,14 +645,14 @@ const Settings = () => {
                 className="btn btn-secondary w-full"
                 onClick={handleExportLogs}
               >
-                📥 Export Logove (JSON)
+                Export Logova (JSON)
               </button>
 
               <button
                 className="btn btn-error w-full"
                 onClick={handleClearOldLogs}
               >
-                🗑️ Obriši Stare Logove
+                Obriši Stare Logove
               </button>
             </div>
           </div>
@@ -594,7 +661,7 @@ const Settings = () => {
         {/* SAVE BUTTON */}
         <div className="flex justify-center p-4">
           <button className="btn btn-lg btn-primary" onClick={updateSettings}>
-            💾 Spremi Postavke
+            Spremi Postavke
           </button>
         </div>
       </div>
@@ -657,6 +724,15 @@ const Settings = () => {
             </div>
           </div>
         </div>
+      )}
+      {toastConfig && (
+        <Toast
+          type={toastConfig.type}
+          title={toastConfig.title}
+          message={toastConfig.message}
+          // Možda želite dodati onClose funkciju u Toast komponentu,
+          // ali za sada je automatski zatvaramo.
+        />
       )}
     </div>
   );

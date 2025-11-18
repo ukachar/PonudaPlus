@@ -28,16 +28,20 @@ class BackupManager {
     return daysSinceBackup >= backupInterval;
   }
 
-  // Kreiraj kompletan backup svih podataka
+  // Kreiraj kompletan backup CIJELE baze (bez logova)
   async createFullBackup() {
     try {
       const backup = {
         version: "1.0",
         timestamp: new Date().toISOString(),
+        appName: "Ponuda+",
         data: {},
       };
 
+      console.log("📦 Započinjem backup...");
+
       // Backup Prijemi
+      console.log("📋 Backupam prijeme...");
       const prijemi = await databases.listDocuments(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
@@ -46,6 +50,7 @@ class BackupManager {
       backup.data.prijemi = prijemi.documents;
 
       // Backup Ponude
+      console.log("📄 Backupam ponude...");
       const ponude = await databases.listDocuments(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
@@ -54,6 +59,7 @@ class BackupManager {
       backup.data.ponude = ponude.documents;
 
       // Backup Stavke
+      console.log("🔧 Backupam stavke...");
       const stavke = await databases.listDocuments(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_STAVKE_COLLECTION,
@@ -62,6 +68,7 @@ class BackupManager {
       backup.data.stavke = stavke.documents;
 
       // Backup Settings
+      console.log("⚙️ Backupam postavke...");
       const settings = await databases.getDocument(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION,
@@ -69,29 +76,26 @@ class BackupManager {
       );
       backup.data.settings = settings;
 
-      // Backup Logs (opciono, može biti veliki)
-      try {
-        const logs = await databases.listDocuments(
-          import.meta.env.VITE_APPWRITE_DATABASE,
-          import.meta.env.VITE_APPWRITE_LOGS_COLLECTION,
-          [Query.limit(1000), Query.orderDesc("timestamp")]
-        );
-        backup.data.logs = logs.documents;
-      } catch (e) {
-        backup.data.logs = [];
-      }
-
       // Metadata
       backup.metadata = {
         prijemiCount: backup.data.prijemi.length,
         ponudeCount: backup.data.ponude.length,
         stavkeCount: backup.data.stavke.length,
-        logsCount: backup.data.logs.length,
+        backupSize: JSON.stringify(backup).length,
+        collections: ["prijemi", "ponude", "stavke", "settings"],
       };
+
+      console.log("✅ Backup završen!");
+      console.log(`📊 Statistika:
+        - Prijemi: ${backup.metadata.prijemiCount}
+        - Ponude: ${backup.metadata.ponudeCount}
+        - Stavke: ${backup.metadata.stavkeCount}
+        - Veličina: ${(backup.metadata.backupSize / 1024 / 1024).toFixed(2)} MB
+      `);
 
       return backup;
     } catch (err) {
-      console.error("Backup creation error:", err);
+      console.error("❌ Backup creation error:", err);
       throw err;
     }
   }
@@ -108,8 +112,12 @@ class BackupManager {
       const link = document.createElement("a");
       link.href = url;
 
-      const timestamp = new Date().toISOString().split("T")[0];
-      link.download = `ponuda-plus-backup-${timestamp}.json`;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .split("T")[0];
+      const time = new Date().toTimeString().split(" ")[0].replace(/:/g, "-");
+      link.download = `ponuda-plus-backup-${timestamp}_${time}.json`;
 
       document.body.appendChild(link);
       link.click();
@@ -126,104 +134,151 @@ class BackupManager {
     }
   }
 
-  // Restore iz backup file-a
-  async restoreFromBackup(backupData) {
+  // Restore iz backup file-a - FULL DATABASE RESTORE
+  async restoreFromBackup(backupData, options = {}) {
     try {
       if (!backupData || !backupData.data) {
         throw new Error("Invalid backup format");
       }
 
+      console.log("🔄 Započinjem restore iz backupa...");
+      console.log(`📅 Backup datum: ${backupData.timestamp}`);
+
       const results = {
-        prijemi: 0,
-        ponude: 0,
-        stavke: 0,
+        prijemi: { created: 0, updated: 0, failed: 0 },
+        ponude: { created: 0, updated: 0, failed: 0 },
+        stavke: { created: 0, updated: 0, failed: 0 },
+        settings: { updated: false, failed: false },
         errors: [],
       };
 
-      // VAŽNO: Ovo će DODATI podatke, ne brisati postojeće
-      // Za complete restore, prvo bi trebalo ručno očistiti bazu
-
-      // Restore Prijemi
+      // RESTORE PRIJEMI
       if (backupData.data.prijemi) {
+        console.log(
+          `📋 Restoring ${backupData.data.prijemi.length} prijema...`
+        );
         for (const prijem of backupData.data.prijemi) {
           try {
-            // Ukloni Appwrite specifične fieldove
-            const {
-              $id,
-              $createdAt,
-              $updatedAt,
-              $permissions,
-              $collectionId,
-              $databaseId,
-              ...cleanData
-            } = prijem;
+            const { $id, $createdAt, $updatedAt, $permissions, ...cleanData } =
+              prijem;
 
-            await databases.createDocument(
-              import.meta.env.VITE_APPWRITE_DATABASE,
-              import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
-              $id, // Koristi originalni ID
-              cleanData
-            );
-            results.prijemi++;
+            try {
+              // Pokušaj update ako već postoji
+              await databases.updateDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.prijemi.updated++;
+            } catch (updateErr) {
+              // Ako ne postoji, kreiraj novi
+              await databases.createDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_PRIJEM_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.prijemi.created++;
+            }
           } catch (e) {
+            results.prijemi.failed++;
             results.errors.push(`Prijem ${prijem.$id}: ${e.message}`);
           }
         }
       }
 
-      // Restore Ponude
+      // RESTORE PONUDE
       if (backupData.data.ponude) {
+        console.log(`📄 Restoring ${backupData.data.ponude.length} ponuda...`);
         for (const ponuda of backupData.data.ponude) {
           try {
-            const {
-              $id,
-              $createdAt,
-              $updatedAt,
-              $permissions,
-              $collectionId,
-              $databaseId,
-              ...cleanData
-            } = ponuda;
+            const { $id, $createdAt, $updatedAt, $permissions, ...cleanData } =
+              ponuda;
 
-            await databases.createDocument(
-              import.meta.env.VITE_APPWRITE_DATABASE,
-              import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
-              $id,
-              cleanData
-            );
-            results.ponude++;
+            try {
+              await databases.updateDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.ponude.updated++;
+            } catch (updateErr) {
+              await databases.createDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.ponude.created++;
+            }
           } catch (e) {
+            results.ponude.failed++;
             results.errors.push(`Ponuda ${ponuda.$id}: ${e.message}`);
           }
         }
       }
 
-      // Restore Stavke
+      // RESTORE STAVKE
       if (backupData.data.stavke) {
+        console.log(`🔧 Restoring ${backupData.data.stavke.length} stavki...`);
         for (const stavka of backupData.data.stavke) {
           try {
-            const {
-              $id,
-              $createdAt,
-              $updatedAt,
-              $permissions,
-              $collectionId,
-              $databaseId,
-              ...cleanData
-            } = stavka;
+            const { $id, $createdAt, $updatedAt, $permissions, ...cleanData } =
+              stavka;
 
-            await databases.createDocument(
-              import.meta.env.VITE_APPWRITE_DATABASE,
-              import.meta.env.VITE_APPWRITE_STAVKE_COLLECTION,
-              $id,
-              cleanData
-            );
-            results.stavke++;
+            try {
+              await databases.updateDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_STAVKE_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.stavke.updated++;
+            } catch (updateErr) {
+              await databases.createDocument(
+                import.meta.env.VITE_APPWRITE_DATABASE,
+                import.meta.env.VITE_APPWRITE_STAVKE_COLLECTION,
+                $id,
+                cleanData
+              );
+              results.stavke.created++;
+            }
           } catch (e) {
+            results.stavke.failed++;
             results.errors.push(`Stavka ${stavka.$id}: ${e.message}`);
           }
         }
       }
+
+      // RESTORE SETTINGS
+      if (backupData.data.settings) {
+        console.log("⚙️ Restoring settings...");
+        try {
+          const { $id, $createdAt, $updatedAt, $permissions, ...cleanData } =
+            backupData.data.settings;
+
+          await databases.updateDocument(
+            import.meta.env.VITE_APPWRITE_DATABASE,
+            import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION,
+            import.meta.env.VITE_APPWRITE_SETTINGS_DOC_ID,
+            cleanData
+          );
+          results.settings.updated = true;
+        } catch (e) {
+          results.settings.failed = true;
+          results.errors.push(`Settings: ${e.message}`);
+        }
+      }
+
+      console.log("✅ Restore završen!");
+      console.log(`📊 Rezultati:
+        Prijemi: ${results.prijemi.created} created, ${results.prijemi.updated} updated, ${results.prijemi.failed} failed
+        Ponude: ${results.ponude.created} created, ${results.ponude.updated} updated, ${results.ponude.failed} failed
+        Stavke: ${results.stavke.created} created, ${results.stavke.updated} updated, ${results.stavke.failed} failed
+        Greške: ${results.errors.length}
+      `);
 
       return results;
     } catch (err) {
@@ -235,9 +290,35 @@ class BackupManager {
   // Auto backup u localStorage (emergency backup)
   async createEmergencyBackup() {
     try {
+      console.log("🚨 Kreiram emergency backup...");
       const backup = await this.createFullBackup();
-      localStorage.setItem("emergency_backup", JSON.stringify(backup));
+
+      // Spremi u localStorage (limit ~5-10MB)
+      const backupStr = JSON.stringify(backup);
+
+      // Provjeri veličinu
+      const sizeInMB = backupStr.length / 1024 / 1024;
+      if (sizeInMB > 8) {
+        console.warn(
+          `⚠️ Backup je prevelik za localStorage (${sizeInMB.toFixed(2)} MB)`
+        );
+        // Spremi samo najvažnije
+        const minimalBackup = {
+          version: backup.version,
+          timestamp: backup.timestamp,
+          data: {
+            prijemi: backup.data.prijemi,
+            ponude: backup.data.ponude,
+            stavke: backup.data.stavke,
+          },
+        };
+        localStorage.setItem("emergency_backup", JSON.stringify(minimalBackup));
+      } else {
+        localStorage.setItem("emergency_backup", backupStr);
+      }
+
       localStorage.setItem("emergency_backup_date", new Date().toISOString());
+      console.log("✅ Emergency backup spremljen!");
       return true;
     } catch (err) {
       console.error("Emergency backup error:", err);
@@ -262,6 +343,16 @@ class BackupManager {
       return null;
     }
   }
+
+  // Restore iz emergency backupa
+  async restoreFromEmergencyBackup() {
+    const emergency = this.getEmergencyBackup();
+    if (!emergency) {
+      throw new Error("Nema emergency backupa");
+    }
+
+    return this.restoreFromBackup(emergency.backup);
+  }
 }
 
 // Singleton instance
@@ -274,3 +365,5 @@ export const downloadBackup = () => backupManager.downloadBackup();
 export const checkBackupReminder = () => backupManager.checkBackupReminder();
 export const createEmergencyBackup = () =>
   backupManager.createEmergencyBackup();
+export const restoreFromEmergencyBackup = () =>
+  backupManager.restoreFromEmergencyBackup();

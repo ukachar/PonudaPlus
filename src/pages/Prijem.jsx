@@ -52,6 +52,17 @@ const Prijem = () => {
   // State za modal za upravljanje stavkama
   const [showStavkeModal, setShowStavkeModal] = useState(false);
 
+  // State za modal za stare prijeme
+  const [showOldPrijemiModal, setShowOldPrijemiModal] = useState(false);
+  const [oldPrijemiList, setOldPrijemiList] = useState([]);
+
+  // Funkcija za prikaz modalа
+  const handleShowOldPrijemi = () => {
+    const old = getOldPrijemi(7);
+    setOldPrijemiList(old);
+    setShowOldPrijemiModal(true);
+  };
+
   // Form data
   const [formData, setFormData] = useState({
     ime_kupca: "",
@@ -553,7 +564,7 @@ const Prijem = () => {
           </button>
           <div className="dropdown dropdown-end inline-block">
             <label tabIndex={0} className="btn btn-accent">
-              📥 Export
+              Export
             </label>
             <ul
               tabIndex={0}
@@ -656,20 +667,8 @@ const Prijem = () => {
           <div className="stat-title">Duže od 7 dana</div>
           <div className="stat-value text-error">{getOldPrijemi(7).length}</div>
           <div
-            className="stat-desc cursor-pointer hover:underline"
-            onClick={() => {
-              const old = getOldPrijemi(7);
-              if (old.length > 0) {
-                alert(
-                  `Stari prijemi:\n\n${old
-                    .map(
-                      (p) =>
-                        `${p.ime_kupca} ${p.prezime_kupca} - ${p.datum_prijema}`
-                    )
-                    .join("\n")}`
-                );
-              }
-            }}
+            className="stat-desc cursor-pointer hover:underline text-primary font-semibold"
+            onClick={handleShowOldPrijemi}
           >
             Klikni za detalje
           </div>
@@ -682,7 +681,7 @@ const Prijem = () => {
           {/* Search */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text">🔍 Pretraži</span>
+              <span className="label-text">Pretraži</span>
             </label>
             <input
               type="text"
@@ -696,7 +695,7 @@ const Prijem = () => {
           {/* Status Filter */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text">📊 Status</span>
+              <span className="label-text">Status</span>
             </label>
             <select
               className="select select-bordered"
@@ -714,7 +713,7 @@ const Prijem = () => {
           {/* Date Filter */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text">📅 Datum</span>
+              <span className="label-text">Datum</span>
             </label>
             <select
               className="select select-bordered"
@@ -1322,7 +1321,165 @@ const Prijem = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {/* MODAL: Stari Prijemi */}
+      {showOldPrijemiModal && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-4xl">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="inline-block w-6 h-6 stroke-current text-error"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                ></path>
+              </svg>
+              Prijemi duži od 7 dana
+            </h3>
+
+            {oldPrijemiList.length === 0 ? (
+              <div className="alert alert-success">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  className="stroke-current shrink-0 w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                <span>Nema starih prijema! Svi su obrađeni na vrijeme. 🎉</span>
+              </div>
+            ) : (
+              <>
+                <div className="alert alert-warning mb-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <span>
+                    Pronađeno <strong>{oldPrijemiList.length}</strong> prijema
+                    koji su u sustavu duže od 7 dana.
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto max-h-96">
+                  <table className="table table-compact w-full">
+                    <thead>
+                      <tr>
+                        <th>Datum prijema</th>
+                        <th>Kupac</th>
+                        <th>Kontakt</th>
+                        <th>Broj stavki</th>
+                        <th>Dana u sustavu</th>
+                        <th>Akcije</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {oldPrijemiList.map((prijem) => {
+                        const stavke = prijem.stavke
+                          ? JSON.parse(prijem.stavke)
+                          : [];
+                        const prijemDate = new Date(prijem.datum_prijema);
+                        const today = new Date();
+                        const daysDiff = Math.floor(
+                          (today - prijemDate) / (1000 * 60 * 60 * 24)
+                        );
+
+                        return (
+                          <tr key={prijem.$id} className="hover">
+                            <td>
+                              <span className="text-sm">
+                                {prijem.datum_prijema}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="font-bold">
+                                {prijem.ime_kupca} {prijem.prezime_kupca}
+                              </div>
+                              <div className="text-xs opacity-50">
+                                {prijem.email}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="text-sm">{prijem.mobitel}</div>
+                            </td>
+                            <td>
+                              <div className="badge badge-ghost">
+                                {stavke.length}
+                              </div>
+                            </td>
+                            <td>
+                              <div
+                                className={`badge ${
+                                  daysDiff > 14
+                                    ? "badge-error"
+                                    : daysDiff > 10
+                                    ? "badge-warning"
+                                    : "badge-info"
+                                }`}
+                              >
+                                {daysDiff} dana
+                              </div>
+                            </td>
+                            <td>
+                              <button
+                                onClick={() => {
+                                  setShowOldPrijemiModal(false);
+                                  urediPrijem(prijem);
+                                }}
+                                className="btn btn-sm btn-primary"
+                              >
+                                Uredi
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 p-3 bg-base-200 rounded-lg">
+                  <p className="text-sm">
+                    <strong>💡 Savjet:</strong> Kontaktiraj kupce čiji strojevi
+                    čekaju duže od 10 dana.
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div className="modal-action">
+              <button
+                onClick={() => setShowOldPrijemiModal(false)}
+                className="btn"
+              >
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div> // ⬅️ Ovo je zadnji </div>
   );
 };
 

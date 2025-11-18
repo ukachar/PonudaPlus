@@ -2,10 +2,12 @@ import { useAuth } from "../auth/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import SkeletonLoader from "../../helpers/SkeletonLoader";
+import BackupReminder from "../components/BackupReminder";
 
 const Dashboard = () => {
   return (
     <>
+      <BackupReminder />
       <main className="p-4">
         <section>
           <div className="gap-8 items-center py-8 px-4 mx-auto max-w-screen-xl xl:gap-16 md:grid md:grid-cols-2 sm:py-16 lg:px-6">
