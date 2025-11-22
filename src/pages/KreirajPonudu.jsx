@@ -85,8 +85,7 @@ const KreirajPonudu = () => {
       const discountedPrice = item.price * (1 - item.discount / 100);
       return acc + item.quantity * discountedPrice;
     }, 0);
-    const pdv = subtotal * 0.25;
-    return { subtotal, pdv, total: subtotal + pdv };
+    return { subtotal, pdv: 0, total: subtotal }; // PDV = 0
   };
 
   const { subtotal, pdv, total } = calculateTotal();
@@ -369,9 +368,10 @@ const KreirajPonudu = () => {
 
           {/* Totals */}
           <div className="text-right mt-4">
-            <p>Ukupno: {subtotal.toFixed(2)} €</p>
-            <p>PDV (25%): {pdv.toFixed(2)} €</p>
-            <p className="font-bold">Sveukupno: {total.toFixed(2)} €</p>
+            <p className="font-bold text-lg">Ukupno: {total.toFixed(2)} €</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Tvrtka nije u sustavu PDV-a
+            </p>
           </div>
 
           <div className="text-sm mt-auto">

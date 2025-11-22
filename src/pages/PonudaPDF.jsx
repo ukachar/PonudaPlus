@@ -157,10 +157,11 @@ export default function PonudaPDF() {
       </table>
 
       {/* Totals */}
-      <div className="text-right mt-4 text-sm">
-        <p>Ukupno: {subtotal.toFixed(2)} €</p>
-        <p>PDV (25%): {pdv.toFixed(2)} €</p>
-        <p className="font-bold">Sveukupno: {total.toFixed(2)} €</p>
+      <div className="text-right mt-4">
+        <p className="text-xl font-bold">Ukupno: {total.toFixed(2)} €</p>
+        <p className="text-xs text-gray-500 mt-1">
+          Tvrtka nije u sustavu PDV-a
+        </p>
       </div>
 
       {/* Footer */}

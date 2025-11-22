@@ -77,9 +77,7 @@ export default function UrediPonudu() {
       const discountedPrice = item.price * (1 - (item.discount || 0) / 100);
       return acc + item.quantity * discountedPrice;
     }, 0);
-    const pdv = subtotal * 0.25;
-    const total = subtotal + pdv;
-    return { subtotal, pdv, total };
+    return { subtotal, pdv: 0, total: subtotal }; // PDV = 0
   };
 
   const handleSubmit = async (e) => {
@@ -216,9 +214,8 @@ export default function UrediPonudu() {
         </button>
 
         <div className="mt-4">
-          <p>Subtotal: {subtotal.toFixed(2)} €</p>
-          <p>PDV (25%): {pdv.toFixed(2)} €</p>
-          <p className="font-bold">Total: {total.toFixed(2)} €</p>
+          <p className="font-bold text-lg">Ukupno: {total.toFixed(2)} €</p>
+          <p className="text-sm text-gray-500">Tvrtka nije u sustavu PDV-a</p>
         </div>
 
         <button type="submit" className="btn btn-primary w-full mt-4">
