@@ -6,6 +6,14 @@ const Release = () => {
       <h1 className="text-3xl font-bold text-center mb-4">Release Notes</h1>
 
       <h2 className="mt-12 text-lg font-medium text-heading">
+        v 1.0.3 - Minor changes
+      </h2>
+      <ul className="space-y-2 text-body list-disc list-inside">
+        <li>Fix baze - mbo</li>
+        <li>PBR dodan u ponudu</li>
+      </ul>
+
+      <h2 className="mt-12 text-lg font-medium text-heading">
         v 1.0.2 - Minor changes
       </h2>
       <ul className="space-y-2 text-body list-disc list-inside">

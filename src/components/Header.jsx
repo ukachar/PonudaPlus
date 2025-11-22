@@ -49,7 +49,7 @@ const Header = () => {
           Ponuda+
         </Link>
         <Link to="/release">
-          <span className="badge">v 1.0.2</span>
+          <span className="badge">v 1.0.3</span>
         </Link>
       </div>
       <div className="flex-none gap-2">

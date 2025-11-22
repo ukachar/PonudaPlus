@@ -333,7 +333,9 @@ const KreirajPonudu = () => {
             />
             <div className="text-right text-sm">
               <strong>{settings.naziv_tvrtke}</strong>
-              <p>{settings.adresa}</p>
+              <p>
+                {settings.adresa} {settings.pbr}
+              </p>
               <p>Matični broj: {settings.mbr}</p>
               <p>OIB: {settings.oib}</p>
               <p>MOB: {settings.phone}</p>
