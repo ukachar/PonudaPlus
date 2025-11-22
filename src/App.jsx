@@ -13,6 +13,9 @@ import Header from "./components/Header";
 import PonudaPDF from "./pages/PonudaPDF";
 import PrijemPDF from "./pages/PrijemPDF";
 import QRLabelPrint from "./pages/QRLabelPrint";
+import Release from "./pages/Release";
+import Footer from "./components/Footer";
+import TechnicalDetails from "./pages/TechnicalDetails";
 
 function App() {
   return (
@@ -37,6 +40,7 @@ function App() {
               <ProtectedRoute>
                 <Header />
                 <Settings />
+                <Footer />
               </ProtectedRoute>
             }
           />
@@ -101,6 +105,26 @@ function App() {
             element={
               <ProtectedRoute>
                 <QRLabelPrint />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/release"
+            element={
+              <ProtectedRoute>
+                <Header />
+                <Release />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/technical-details"
+            element={
+              <ProtectedRoute>
+                <Header />
+                <TechnicalDetails />
               </ProtectedRoute>
             }
           />

@@ -77,9 +77,9 @@ const Login = () => {
               </p>
             </div>
           </div>
-          <div className="flex-1 bg-indigo-100 text-center hidden lg:flex">
+          <div className="flex-1 bg-slate-200 text-center hidden lg:flex">
             <div className="m-12 xl:m-16 w-full bg-contain bg-center bg-no-repeat rounded-sm">
-              <img src="./login_banner.jpg" alt="login banner" />
+              <img src="./login_banner.png" alt="login banner" />
             </div>
           </div>
         </div>

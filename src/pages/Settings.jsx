@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { databases, storage } from "../../appwriteConfig";
 import backupManager from "../../helpers/backup";
 import logger from "../../helpers/logger";
-import { Query } from "appwrite";
 import Toast from "../components/Toast";
 
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_SETTINGS_COLLECTION;

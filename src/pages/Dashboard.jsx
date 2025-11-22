@@ -10,15 +10,15 @@ const Dashboard = () => {
       <BackupReminder />
       <main className="p-4">
         <section>
-          <div className="gap-8 items-center py-8 px-4 mx-auto max-w-screen-xl xl:gap-16 md:grid md:grid-cols-2 sm:py-16 lg:px-6">
+          <div className="gap-8  py-8 px-4 mx-auto max-w-screen-md xl:gap-16 md:grid md:grid-cols-2 sm:py-16 lg:px-6">
             <img
               className="w-full dark:hidden"
-              src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/cta/cta-dashboard-mockup.svg"
+              src="ponude.svg"
               alt="dashboard image"
             />
             <img
               className="w-full hidden dark:block"
-              src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/cta/cta-dashboard-mockup-dark.svg"
+              src="ponude.svg"
               alt="dashboard image"
             />
             <div className="mt-4 md:mt-0">
@@ -30,7 +30,7 @@ const Dashboard = () => {
               </p>
               <Link
                 to="/ponude"
-                className="btn btn-active inline-flex items-center  ho font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                className="btn btn-active inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 text-center"
               >
                 Kreni
                 <svg
@@ -50,15 +50,15 @@ const Dashboard = () => {
           </div>
         </section>
         <section>
-          <div className="gap-8 items-center py-8 px-4 mx-auto max-w-screen-xl xl:gap-16 md:grid md:grid-cols-2 sm:py-16 lg:px-6">
+          <div className="gap-8 py-8 px-4 mx-auto max-w-screen-md xl:gap-16 md:grid md:grid-cols-2 sm:py-16 lg:px-6">
             <img
               className="w-full dark:hidden"
-              src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/cta/cta-dashboard-mockup.svg"
+              src="prijem.svg"
               alt="dashboard image"
             />
             <img
               className="w-full hidden dark:block"
-              src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/cta/cta-dashboard-mockup-dark.svg"
+              src="prijem.svg"
               alt="dashboard image"
             />
             <div className="mt-4 md:mt-0">
