@@ -60,7 +60,7 @@ export default function Ponude() {
         <table className="table table-zebra w-full">
           <thead>
             <tr>
-              <th># Ponude</th>
+              <th># Ponuda</th>
               <th>Kupac</th>
               <th>Adresa</th>
               <th>Iznos (€)</th>

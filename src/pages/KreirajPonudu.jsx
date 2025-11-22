@@ -123,17 +123,39 @@ const KreirajPonudu = () => {
 
   const getNextPonudaNumber = async () => {
     try {
+      const currentYear = new Date().getFullYear();
+
+      // Dohvati sve ponude iz trenutne godine
       const response = await databases.listDocuments(
         import.meta.env.VITE_APPWRITE_DATABASE,
         import.meta.env.VITE_APPWRITE_PONUDE_COLLECTION,
-        [Query.orderDesc("broj_ponude"), Query.limit(1)]
+        [Query.orderDesc("$createdAt"), Query.limit(100)]
       );
-      if (response.documents.length > 0)
-        return response.documents[0].broj_ponude + 1;
-      return 1;
+
+      // Filtriraj ponude iz trenutne godine
+      const thisYearPonude = response.documents.filter((p) => {
+        if (!p.broj_ponude) return false;
+        const year = p.broj_ponude.split("-")[0];
+        return year === currentYear.toString();
+      });
+
+      // Pronađi najveći broj u ovoj godini
+      let maxNumber = 0;
+      thisYearPonude.forEach((p) => {
+        const parts = p.broj_ponude.split("-");
+        if (parts.length === 2) {
+          const num = parseInt(parts[1]);
+          if (num > maxNumber) maxNumber = num;
+        }
+      });
+
+      // Sljedeći broj
+      const nextNumber = (maxNumber + 1).toString().padStart(2, "0");
+      return `${currentYear}-${nextNumber}`;
     } catch (error) {
       console.error("Error fetching last ponuda number:", error);
-      return 1;
+      const currentYear = new Date().getFullYear();
+      return `${currentYear}-01`;
     }
   };
 
@@ -336,7 +358,7 @@ const KreirajPonudu = () => {
           </div>
 
           <h4 className="text-lg font-bold text-center my-4">
-            Ponuda #{broj_ponude}
+            PONUDA {broj_ponude}
           </h4>
           <hr className="my-4" />
 
@@ -369,8 +391,12 @@ const KreirajPonudu = () => {
           {/* Totals */}
           <div className="text-right mt-4">
             <p className="font-bold text-lg">Ukupno: {total.toFixed(2)} €</p>
+          </div>
+
+          <div className="text-left mt-2">
             <p className="text-sm text-gray-500 mt-1">
-              Tvrtka nije u sustavu PDV-a
+              LD nije u sustavu PDV-a. U cijenu nije uračunat porez prema članku
+              90. stavak 1 zakona o PDV-u.
             </p>
           </div>
 

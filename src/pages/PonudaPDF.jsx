@@ -123,7 +123,7 @@ export default function PonudaPDF() {
       </div>
 
       <h4 className="text-lg font-bold text-center my-4">
-        Ponuda #{ponuda.broj_ponude}
+        PONUDA {ponuda.broj_ponude}
       </h4>
       <hr className="my-4" />
 
@@ -158,9 +158,13 @@ export default function PonudaPDF() {
 
       {/* Totals */}
       <div className="text-right mt-4">
-        <p className="text-xl font-bold">Ukupno: {total.toFixed(2)} €</p>
-        <p className="text-xs text-gray-500 mt-1">
-          Tvrtka nije u sustavu PDV-a
+        <p className="font-bold text-lg">Ukupno: {total.toFixed(2)} €</p>
+      </div>
+
+      <div className="text-left mt-2">
+        <p className="text-sm text-gray-500 mt-1">
+          LD nije u sustavu PDV-a. U cijenu nije uračunat porez prema članku 90.
+          stavak 1 zakona o PDV-u.
         </p>
       </div>
 
