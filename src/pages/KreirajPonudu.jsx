@@ -73,7 +73,7 @@ const KreirajPonudu = () => {
   };
 
   const addItem = () => {
-    setItems([...items, { name: "", quantity: 1, price: 0, discount: 0 }]);
+    setItems([...items, { name: "", quantity: 1, price: "", discount: "" }]);
   };
 
   const removeItem = (index) => {
@@ -380,7 +380,9 @@ const KreirajPonudu = () => {
                 <tr key={index} className="border-b">
                   <td>{item.name}</td>
                   <td className="text-center">{item.quantity}</td>
-                  <td className="text-center">{item.price.toFixed(2)}</td>
+                  <td className="text-center">
+                    {Number(item.price || 0).toFixed(2)}
+                  </td>
                   <td className="text-center">{item.discount}%</td>
                   <td className="text-center">
                     {(item.quantity * (item.price - item.discount)).toFixed(2)}
